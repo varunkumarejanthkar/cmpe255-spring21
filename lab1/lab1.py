@@ -1,4 +1,4 @@
-  
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ class Solution:
         grouped_Item = self.chipo.groupby("item_name")["quantity"].sum().sort_values().tail(1).to_dict()
         item_name = list(grouped_Item.keys())[0]        
         quantity = self.chipo.groupby("choice_description")["quantity"].sum().sort_values().max()                
-        order_id = self.chipo.groupby("item_name")["order_id"].sum()["Chicken Bowl"]                                       
+        order_id = self.chipo.groupby("item_name")["order_id"].sum()[item_name]                                       
         return item_name, order_id, quantity
 
     def total_item_orders(self) -> int:             
