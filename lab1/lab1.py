@@ -1,109 +1,114 @@
 import pandas as pd
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
-import csv
 
-class Solution:
-    def __init__(self) -> None:      
-        file = 'data/chipotle.tsv'
-        self.chipo =pd.read_csv(file, sep = '\t')
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
 
-    def top_x(self, count) -> None:          
-        topx = self.chipo.head(count)
-        print(topx.to_markdown())
+
+class DiabetesClassifier:
+    def __init__(self):
+        col_names = ['pregnant', 'glucose', 'bp', 'skin', 'insulin', 'bmi', 'pedigree', 'age', 'label']
+        self.pima = pd.read_csv('diabetes.csv', header=0, names=col_names, usecols=col_names)
+        print(self.pima.head())
+        print(self.pima.describe())
+        self.X_test = None
+        self.y_test = None
+        self.X = None
+        self.y = None
         
-    def count(self) -> int:      
-        return self.chipo.order_id.count()
-    
-    def info(self) -> None:        
-        print(self.chipo.info())        
-        pass
-    
-    def num_column(self) -> int:       
-        return len(self.chipo.columns)
-    
-    def print_columns(self) -> None:              
-        print(self.chipo.columns)
-        pass
-    
-    def most_ordered_item(self):               
-        grouped_Item = self.chipo.groupby("item_name")["quantity"].sum().sort_values().tail(1).to_dict()
-        item_name = list(grouped_Item.keys())[0]        
-        quantity = self.chipo.groupby("choice_description")["quantity"].sum().sort_values().max()                
-        order_id = self.chipo.groupby("item_name")["order_id"].sum()[item_name]                                       
-        return item_name, order_id, quantity
-
-    def total_item_orders(self) -> int:             
-        return self.chipo["quantity"].sum()
-   
-    def total_sales(self) -> float:           
-        total_sales = (self.chipo["item_price"].apply(lambda x: x.strip('$')).astype(float) 
-                      * self.chipo["quantity"]).sum()                       
-        return total_sales             
-   
-    def num_orders(self) -> int:        
-        return self.chipo["order_id"].nunique()
-    
-    def average_sales_amount_per_order(self) -> float:                
-        average_sales_amount_per_order = (self.chipo["item_price"].apply(lambda x: x.strip('$')).astype(float) * self.chipo["quantity"]).sum()                                  
-        average_sales_amount_per_order /= self.chipo["order_id"].nunique()
-        average_sales_amount_per_order = round(average_sales_amount_per_order, 2)        
-        return average_sales_amount_per_order
-
-    def num_different_items_sold(self) -> int:            
-        return self.chipo["item_name"].nunique()
-    
-    def plot_histogram_top_x_popular_items(self, x:int) -> None:
-        from collections import Counter
-        letter_counter = Counter(self.chipo.item_name)                
-        df = pd.DataFrame.from_dict(letter_counter, orient='index').reset_index()
-        df.columns = ["item_name", "quantity"]     
-        df.rename(columns={"index" : "item_name", 0 : "quantity"})
-        df = df.sort_values("quantity", ascending=False).head(5)        
-        fig = plt.figure()
-        axes = fig.add_axes([0,0,1,1])        
-        axes.bar(df["item_name"], df["quantity"])
-        plt.title("Most popular items")
-        plt.xlabel("Items")
-        plt.ylabel("Number of Orders")
-        plt.show(block = True)      
-        pass
+    def box_plot(self):
+        # TODO: Draw a box plot with 'age' on y-axis and 'label' on x-axis using Seaborn plotting library. 
+        # Then, save the box plot to 'diabetes_by_age.png' file.
+        #
         
-    def scatter_plot_num_items_per_order_price(self) -> None:                
-        self.chipo["item_price"] = self.chipo["item_price"].apply(lambda x: x.strip('$')).astype(float) * self.chipo["quantity"]                                       
-        xData = self.chipo.groupby("order_id")["item_price"].sum()
-        yData = self.chipo.groupby("order_id")["quantity"].sum()                
-        plt.scatter(x = xData, y = yData, s = 50, c = "blue")
-        plt.title("Numer of items per order price")
-        plt.xlabel("Order Price")
-        plt.ylabel("Num Items")
+        plt.xlabel('label')
+        plt.ylabel('age')
+        plt.boxplot(self.pima)
+        plt.title('Diabetes by Age')
+        plt.savefig('diabetes_by_age.png')
         plt.show()
-        pass 
-        
 
-def test() -> None:
-    solution = Solution()
-    solution.top_x(10)
-    count = solution.count()
-    print(count)
-    assert count == 4622
-    solution.info()
-    count = solution.num_column()
-    assert count == 5
-    item_name, order_id, quantity = solution.most_ordered_item()
-    assert item_name == 'Chicken Bowl'
-    assert order_id == 713926	
-    assert quantity == 159
-    total = solution.total_item_orders()
-    assert total == 4972
-    assert 39237.02 == solution.total_sales()
-    assert 1834 == solution.num_orders()
-    assert 21.39 == solution.average_sales_amount_per_order()
-    assert 50 == solution.num_different_items_sold()
-    solution.plot_histogram_top_x_popular_items(5)
-    solution.scatter_plot_num_items_per_order_price()
+    def corr_matrix(self):
+        # TODO: Calculate correlation matrix for each feature.
+        corr_matrix = self.pima.corr()
+        print(corr_matrix)
+        sns.heatmap(corr_matrix)
+
+    def create_new_feature(self):
+        # TODO: create a new synthetic feature called 'bmi_skin' by multiplying 'bmi' * 'skin'
+        # and set the new feature 'bmi_skin' into self.pima DataFrame.
+        self.pima['bmi_skin'] = self.pima['bmi']* self.pima['skin']
+        print(self.pima.head())
+
+    def define_feature(self, feature_cols):
+        self.X = self.pima[feature_cols]
+        self.y = self.pima.label
+
+    def train(self):
+        # TODO: set test size to the 80/20 rule for training and testing in below train_test_split(...) function parameter.
+        X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
+        # train a logistic regression model on the training set
+        logreg = LogisticRegression(max_iter=150)
+        logreg.fit(X_train, y_train)
+        return logreg
+    
+    def predict(self):
+        model = self.train()
+        y_pred_class = model.predict(self.X_test)
+        return y_pred_class
+
+    def calculate_accuracy(self, pred):
+        # TODO: compute accuracy_score using metrics library and return the score.
+        accuracy = metrics.accuracy_score(self.y_test, pred)
+        return accuracy
+
+    def confusion_matrix(self, pred):
+        # TODO: compute confusion_matrix using metrics library and return the score.
+        cm = metrics.confusion_matrix(self.y_test, pred)
+        return cm
+
+    def precision_score(self, pred):
+        # TODO: compute precision_score using metrics library and return the score.
+        precision = metrics.precision_score(self.y_test, pred, average='macro')
+        return precision
+
+
+    def recall_score(self, pred):
+        # TODO: compute recall_score using metrics library and return the score.
+        recall = metrics.recall_score(self.y_test, pred, average='macro')
+        return recall
 
     
 if __name__ == "__main__":
-    # execute only if run as a script
-    test()
+    # Feel free to change any code here! Especially to answer the Diabetes Classifier related MCQ questions.
+    classifer = DiabetesClassifier()
+    classifer.box_plot()
+    classifer.corr_matrix()
+
+    # TODO: Based on the correlation matrix, select top 5 features.
+    feature_cols = ['pregnant', 'age', 'label', 'glucose', 'bmi']
+
+    classifer.create_new_feature()
+    # TODO: add new synthetic feature 'bmi_skin' to the feature_cols list.
+
+    feature_cols.append('bmi_skin')
+    print(feature_cols)
+
+    # Now, the feature cols should have 6 features.
+    # Now, the feature cols should have 6 features.
+    classifer.define_feature(feature_cols)
+    result = classifer.predict()
+    print(f"Predicition={result}")
+    score = classifer.calculate_accuracy(result)
+    print(f"score={score}")
+
+    con_matrix = classifer.confusion_matrix(result)
+    print(f"confusion_matrix={con_matrix}")
+
+    precision = classifer.precision_score(result)
+    print(f"precision_score={precision}")
+    recall = classifer.recall_score(result)
+    print(f"recall_score={recall}")

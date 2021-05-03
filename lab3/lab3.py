@@ -1,74 +1,89 @@
-import numpy as np
-import os
+import pandas as pd
+from inspect import CO_NEWLOCALS
+import numbers
 
-np.random.seed(42)
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+from sklearn.feature_selection import SelectKBest
 
-# To plot pretty figures
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-mpl.rc('axes', labelsize=14)
-mpl.rc('xtick', labelsize=12)
-mpl.rc('ytick', labelsize=12)
+class DiabetesClassifier:
+        def __init__(self, length, breadth, unit_cost=0):
+            print("Inside init");
+            self.length = length
+            self.breadth = breadth
+            self.unit_cost = unit_cost
+            col_names = ['pregnant', 'glucose', 'bp', 'skin', 'insulin', 'bmi', 'pedigree', 'age', 'label']
+            self.pima = pd.read_csv('diabetes.csv', header=0, names=col_names, usecols=col_names)
+            print("Inside self");
+            print(self.pima.head())
+            self.X_test = None
+            self.y_test = None        
 
-# Where to save the figures
-PROJECT_ROOT_DIR = "."
-IMAGE_DIR = "FIXME"
-
-def save_fig(fig_id, tight_layout=True):
-    path = os.path.join(PROJECT_ROOT_DIR, "images", IMAGE_DIR, fig_id + ".png")
-    print("Saving figure", fig_id)
-    if tight_layout:
-        plt.tight_layout()
-    plt.savefig(path, format='png', dpi=300)
+        def define_feature(self, scale):
+            global X
+            if scale == 1:
+                columns =  ['skin', 'insulin', 'bmi', 'age']
+                X = self.pima[columns]
+            elif scale == 2:
+                columns = ['glucose', 'insulin', 'bmi', 'age']
+                X = self.pima[columns]        
+            elif scale == 3:
+                columns = ['pregnant', 'glucose', 'insulin', 'bmi', 'bp']
+                X = self.pima[columns]
+            elif scale == 4:
+                columns = ['pregnant', 'glucose', 'bp', 'insulin', 'bmi', 'age', 'pedigree']
+                X = self.pima[columns]            
+            y = self.pima.label
+            return X, y
     
-
-def random_digit():
-    some_digit = X[36000]
-    some_digit_image = some_digit.reshape(28, 28)
-    plt.imshow(some_digit_image, cmap = mpl.cm.binary, interpolation="nearest")
-    plt.axis("off")
-    save_fig("some_digit_plot")
-    plt.show()
-
-   
-def load_and_sort():
-    try:
-        from sklearn.datasets import fetch_openml
-        mnist = fetch_openml('mnist_784', version=1, cache=True)
-        mnist.target = mnist.target.astype(np.int8) # fetch_openml() returns targets as strings
-        sort_by_target(mnist) # fetch_openml() returns an unsorted dataset
-    except ImportError:
-        from sklearn.datasets import fetch_mldata
-        mnist = fetch_mldata('MNIST original')
-    mnist["data"], mnist["target"]
-
-
-def sort_by_target(mnist):
-    reorder_train = np.array(sorted([(target, i) for i, target in enumerate(mnist.target[:60000])]))[:, 1]
-    reorder_test = np.array(sorted([(target, i) for i, target in enumerate(mnist.target[60000:])]))[:, 1]
-    mnist.data[:60000] = mnist.data[reorder_train]
-    mnist.target[:60000] = mnist.target[reorder_train]
-    mnist.data[60000:] = mnist.data[reorder_test + 60000]
-    mnist.target[60000:] = mnist.target[reorder_test + 60000]
-
-
-def train_predict(some_digit):
-    import numpy as np
-    shuffle_index = np.random.permutation(60000)
-    X_train, y_train = X_train[shuffle_index], y_train[shuffle_index]
-
-    # Example: Binary number 4 Classifier
-    y_train_4 = (y_train == 4)
-    y_test_4 = (y_test == 4)
-
-    from sklearn.linear_model import SGDClassifier
-    # TODO
-    # print prediction result of the given input some_digit
+        def train(self, scale = 0):
+        # split X and y into training and testing sets
+            X, y = self.define_feature(scale)
+            X_train, self.X_test, y_train, self.y_test = train_test_split(X, y, random_state=0)
+        # train a logistic regression model on the training set
+            logreg = LogisticRegression(max_iter = 1000)
+            logreg.fit(X_train, y_train)
+            return logreg
     
+        def predict(self, scale=0):
+            model = self.train( scale)
+            y_pred_class = model.predict(self.X_test)
+            return y_pred_class
+
+        def calculate_accuracy(self, result):
+            return metrics.accuracy_score(self.y_test, result)
+
+        def examine(self):
+            dist = self.y_test.value_counts()
+            print(dist)
+            percent_of_ones = self.y_test.mean()
+            percent_of_zeros = 1 - self.y_test.mean()
+            return self.y_test.mean()
     
-#def calculate_cross_val_score():
-load_and_sort()
+        def confusion_matrix(self, result):
+            return metrics.confusion_matrix(self.y_test, result)
+        
+        def use_skb(self):
+            select = SelectKBest(k=4)
+            select.fit(self.pima.iloc[:,:-1], self.pima.label)
+            c = selector.get_support(indices=True)
+            f = self.pima.iloc[:,c]
+            return f
 
-random_digit()
+        def get_metrics(self, scale = 0):
+            global s, cmatrix
+            r = classifier.predict(scale)
+            s = classifier.calculate_accuracy(r)
+            cmatrix = classifier.confusion_matrix(r)
+            #print(cmatrix)
+            return cmatrix
+            pass
 
-
+classifier = DiabetesClassifier(160, 120, 2000)
+print('| Experiement | Accuracy | Confusion Matrix | Comment |')
+print('|-------------|----------|------------------|---------|')
+print('| Baseline    | 0.6770833333333334 | [[114  16] [ 46  16]] |  |')
+for scale in range(1,5):
+    classifier.get_metrics( scale)
+    print(f'| Solution %d | {score} | {con_matrix.tolist()} | Used features:  {X.columns.tolist()} ' %(scale) )
